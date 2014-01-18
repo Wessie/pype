@@ -73,7 +73,7 @@ def initialize_pipe_variables(pipe):
 
     Does not touch attributes already set
     """
-    for attribute, default in default_pipe_variables.iteritems():
+    for attribute, default in default_pipe_variables.items():
         setattr(pipe, attribute, getattr(pipe, attribute, default))
 
 
@@ -118,6 +118,10 @@ def initialize_pipeline_state_handling(pipes):
 
 
 def _create_state_pair():
+    """
+    Creates a pair of functions that respectively remove a
+    state instance and add a state instance from/to a generator.
+    """
     last_state = [None]
     def remove_state(pipe):
         for state, data in pipe:

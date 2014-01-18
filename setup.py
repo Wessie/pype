@@ -13,6 +13,7 @@ setup(
       description=("A lunatics pipeline"),
       license='GPL',
       install_requires=[
+          "future",
       ],
       dependency_links = [
       ],
