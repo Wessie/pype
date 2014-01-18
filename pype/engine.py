@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import functools
+
 from . import core
 
 class DefaultName(object):
@@ -19,6 +20,21 @@ default_pipe_variables = {
 
 class PipeError(core.Error):
     pass
+
+
+def pipeline(*pipeline):
+    for pipe in pipeline:
+        initialize_pipe_variables(pipe)
+
+    verify_pipe_types(pipeline)
+
+    pipeline = initialize_pipeline_state_handling(pipeline)
+
+    last = None
+    for pipe in pipeline:
+        last = pipe(last)
+
+    return last
 
 
 def verify_pipe_types(pipes):
@@ -100,42 +116,6 @@ def initialize_pipeline_state_handling(pipes):
 
     return stated_pipes
 
-
-def pipeline(*pipeline):
-    for pipe in pipeline:
-        initialize_pipe_variables(pipe)
-
-    verify_pipe_types(pipeline)
-
-    pipeline = initialize_pipeline_state_handling(pipeline)
-
-    last = None
-    for pipe in pipeline:
-        last = pipe(last)
-
-    return last
-
-
-def _skip_state(to_be_wrapped):
-    last_state = [None]
-    def remove_state(pipe):
-        for state, data in pipe:
-            last_state[0] = state
-            yield data
-
-    def add_state(pipe):
-        for data in pipe:
-            yield last_state[0], data
-
-    @functools.wraps(to_be_wrapped)
-    def skipper(pipe, *args, **kwargs):
-        removal = remove_state(pipe)
-
-        wrapped = to_be_wrapped(removal, *args, **kwargs)
-
-        return add_state(wrapped)
-
-    return skipper
 
 def _create_state_pair():
     last_state = [None]

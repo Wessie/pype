@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from . import core
+from pype import core
 
 import pytest
 
@@ -8,7 +8,7 @@ import pytest
 def generator(type):
     @core.input("string")
     @core.output("string")
-    def lower_generator(pipe):
+    def string_generator(pipe):
         for string in pipe:
             yield string.lower()
 
@@ -45,8 +45,8 @@ def generator(type):
 
     if type == "range":
         return range_generator
-    elif type == "lower":
-        return lower_generator
+    elif type == "string":
+        return string_generator
     elif type == "plain":
         return plain_generator
     elif type == "state_setter":
@@ -61,8 +61,8 @@ def range_generator():
 
 
 @pytest.fixture
-def lower_generator():
-    return generator('lower')
+def string_generator():
+    return generator('string')
 
 
 @pytest.fixture
@@ -77,7 +77,7 @@ def valid_pipeline():
 
 @pytest.fixture
 def invalid_pipeline():
-    return [generator('range'), generator('lower')]
+    return [generator('range'), generator('string')]
 
 
 @pytest.fixture

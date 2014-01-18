@@ -1,23 +1,23 @@
 from __future__ import absolute_import
 
-from . import core
+import pype
 
 import pytest
 
 
-@core.input("tester", bytes)
+@pype.core.input("tester", bytes)
 def test_input_decorator():
     assert test_input_decorator.input_type == bytes
     assert test_input_decorator.input_name == "tester"
 
 
-@core.output("tester", bytes)
+@pype.core.output("tester", bytes)
 def test_output_decorator():
     assert test_output_decorator.output_type == bytes
     assert test_output_decorator.output_name == "tester"
 
 
-@core.state
+@pype.core.state
 def test_state_decorator():
     assert test_state_decorator.pass_state
 
@@ -31,7 +31,7 @@ def test_state_class():
     - mutate method to return a copy
     - equality to other State instances
     """
-    state = core.State(hello="World")
+    state = pype.core.State(hello="World")
 
     assert state.hello == "World"
 
@@ -43,8 +43,8 @@ def test_state_class():
     new = state.mutate(**{"new": "hello"})
 
     assert new is not state
-    assert state == core.State(hello="World")
-    assert new == core.State(hello="World", new="hello")
+    assert state == pype.core.State(hello="World")
+    assert new == pype.core.State(hello="World", new="hello")
 
 
 def test_state_class_immutability():
@@ -54,7 +54,7 @@ def test_state_class_immutability():
 
     We check our simple restrictions in this test.
     """
-    state = core.State(hello="World")
+    state = pype.core.State(hello="World")
 
     # Test for simple mutability
     r = pytest.raises
@@ -73,7 +73,7 @@ def test_extract_arguments_defaults():
     """
     function = lambda x=5, y=7, z=10: None
 
-    res = core.config._extract_arguments(function)
+    res = pype.core.config._extract_arguments(function)
 
     assert ("x", 5) in res
     assert ("y", 7) in res
@@ -86,10 +86,10 @@ def test_extract_arguments_mixed():
     """
     function = lambda nodefault, hasdefault=True: None
 
-    res = core.config._extract_arguments(function)
+    res = pype.core.config._extract_arguments(function)
 
     assert ("hasdefault", True) in res
-    assert ("nodefault", core.NoDefaultValue) in res
+    assert ("nodefault", pype.core.NoDefaultValue) in res
 
 
 def test_extract_arguments_nodefaults():
@@ -98,17 +98,16 @@ def test_extract_arguments_nodefaults():
     """
     function = lambda nodefault, nodefaulteither: None
 
-    res = core.config._extract_arguments(function)
+    res = pype.core.config._extract_arguments(function)
 
-    assert ("nodefault", core.NoDefaultValue) in res
-    assert ("nodefaulteither", core.NoDefaultValue) in res
+    assert ("nodefault", pype.core.NoDefaultValue) in res
+    assert ("nodefaulteither", pype.core.NoDefaultValue) in res
 
 
 def test_nodefaultvalue_behaviour():
-    assert core.NoDefaultValue == core.NoDefaultValue
-    assert core.NoDefaultValue is core.NoDefaultValue
-    assert repr(core.NoDefaultValue) == "NoDefaultValue"
-    assert isinstance(core.NoDefaultValue, type(core.NoDefaultValue))
+    assert pype.core.NoDefaultValue == pype.core.NoDefaultValue
+    assert pype.core.NoDefaultValue is pype.core.NoDefaultValue
+    assert repr(pype.core.NoDefaultValue) == "NoDefaultValue"
 
 
 def test_consume_simple():
@@ -118,6 +117,6 @@ def test_consume_simple():
         for n in range(10):
             yield res.append(n)
 
-    core.consume(append_to_res())
+    pype.core.consume(append_to_res())
 
     assert res == list(range(10))

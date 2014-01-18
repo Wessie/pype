@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 import functools
 import threading
-import Queue
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 
 
 def buffered(buffersize, chunksize):

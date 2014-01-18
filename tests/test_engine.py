@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division
-from . import engine
-from . import core
+from pype import engine
+from pype import core
 
 import pytest
 
@@ -20,10 +20,10 @@ def test_verify_pipe_types_with_valid(valid_pipeline):
     engine.verify_pipe_types(valid_pipeline)
 
 
-def test_initialize_pipe_variables_partial(lower_generator):
-    engine.initialize_pipe_variables(lower_generator)
+def test_initialize_pipe_variables_partial(string_generator):
+    engine.initialize_pipe_variables(string_generator)
 
-    g = lower_generator
+    g = string_generator
 
     assert g.output_name  == "string"
     assert g.input_name   == "string"
@@ -35,15 +35,17 @@ def test_initialize_pipe_variables_partial(lower_generator):
 def test_initialize_pipe_variables_full(plain_generator):
     engine.initialize_pipe_variables(plain_generator)
 
-    assert isinstance(plain_generator.output_name, engine.DefaultName)
-    assert isinstance(plain_generator.input_name, engine.DefaultName)
+    g = plain_generator
 
-    assert plain_generator.input_type is None
-    assert plain_generator.output_type is None
+    assert isinstance(g.output_name, engine.DefaultName)
+    assert isinstance(g.input_name, engine.DefaultName)
+
+    assert g.input_type  is None
+    assert g.output_type is None
     # Default values for input and output should never be equal
-    assert plain_generator.input_name is not plain_generator.output_name
+    assert g.input_name  is not g.output_name
     # Passing state should always default to False for convenience
-    assert plain_generator.pass_state == False
+    assert g.pass_state  == False
 
 
 def test_simple_pipeline(valid_pipeline):

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import time
 
-from . import util
+from pype import util
 
 import pytest
 
@@ -35,6 +35,15 @@ def test_run_utility():
 def test_buffered_decorator(number_of_numbers):
     buffered_range = util.buffered(10, 10)(range)
 
-    res = list(buffered_range(1000))
+    res = list(buffered_range(number_of_numbers))
 
-    assert len(res) == 1000
+    assert len(res) == number_of_numbers
+
+
+def test_error_class():
+    someerr = util.Err("SomeError")
+    othererror = util.Err("OtherError")
+
+    assert someerr is not othererror
+    assert repr(someerr) == "SomeError"
+    assert repr(othererror) == "OtherError"
