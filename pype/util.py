@@ -1,10 +1,7 @@
 from __future__ import absolute_import
 import functools
 import threading
-try:
-    import Queue
-except ImportError:
-    import queue as Queue
+import queue
 
 
 def buffered(buffersize, chunksize):
@@ -23,7 +20,7 @@ def buffered(buffersize, chunksize):
     def buffered(function, *args, **kwargs):
         @functools.wraps(function)
         def buffered(*args, **kwargs):
-            queue = Queue.Queue(maxsize=buffersize)
+            queue_buffer = queue.Queue(maxsize=buffersize)
 
             # Create ourself a sentinal to use as StopIteration indicator.
             exit = object()
@@ -39,17 +36,17 @@ def buffered(buffersize, chunksize):
                     index += 1
 
                     if index >= chunksize:
-                        queue.put(chunk[:])
+                        queue_buffer.put(chunk[:])
                         index = 0
 
-                queue.put(chunk[:index])
-                queue.put(exit)
+                queue_buffer.put(chunk[:index])
+                queue_buffer.put(exit)
 
             run(threaded_generator, function, *args, **kwargs)
 
             cont = True
             while True:
-                chunk = queue.get()
+                chunk = queue_buffer.get()
 
                 # The method to detect the sentinal below is faster
                 # than putting an 'if' statement in the for loop

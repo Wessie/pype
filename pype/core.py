@@ -120,6 +120,8 @@ class config(object):
         self.only_with_defaults = only_with_defaults
         self.without = without
 
+        self.function = None
+
 
     def __call__(self, *args, **kwargs):
         if self.function:
