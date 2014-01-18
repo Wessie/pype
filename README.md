@@ -1,0 +1,1 @@
+A pipeline utility library for lunatics and generator fanatics.
