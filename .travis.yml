@@ -1,11 +1,12 @@
 language: python
 python:
     - 2.7
+    - 3.2
     - 3.3
     - pypy
 install:
     - pip install pytest pytest-cov coveralls coverage --use-mirrors
 script:
-    - py.test --cov
+    - py.test --cov=pype
 after_success:
     - coveralls
