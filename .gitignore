@@ -3,6 +3,7 @@
 .ropeproject
 /.settings
 *.pyc
+.coverage
 /build
 /dist
 /Hanyuu_sama.egg-info
