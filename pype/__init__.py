@@ -3,7 +3,7 @@ from future import standard_library
 standard_library.install_hooks()
 
 from .engine import pipeline
-from .core import output, input, config
+from .core import output, input, config, ConfigurationError
 from .util import buffered
 
 
