@@ -118,10 +118,27 @@ class config(object):
         self.name = name
         self.redirect = redirect
         self.only_with_defaults = only_with_defaults
-        self.without = without
+        self.without  = without
 
         self.function = None
+        self.config   = {}
 
+    def apply(self, **config):
+        c = self.copy()
+        c.config.update(config)
+        return c
+
+    def copy(self):
+        c = type(self)(
+                          name=self.name,
+                      redirect=self.redirect,
+            only_with_defaults=self.only_with_defaults,
+                       without=self.without,
+        )
+        c.function           = self.function
+        c.config             = self.config.copy()
+        c.possible_arguments = self.possible_arguments
+        return c
 
     def __call__(self, *args, **kwargs):
         if self.function:
@@ -137,7 +154,7 @@ class config(object):
         """
         self.function = function
 
-        function.redirected_configuration = redirect
+        function.redirected_configuration = self.redirect
 
         to_read_config = function
 
@@ -147,29 +164,39 @@ class config(object):
 
         possible_arguments = self._extract_arguments(to_read_config)
 
-        if only_with_defaults:
+        if not self.redirect:
+            # Remove the first argument since it `should` be the previous pipe always
+            possible_arguments = possible_arguments[1:]
+
+        if self.only_with_defaults:
             # Remove any arguments that don't have a default value
             possible_arguments = [(arg, default) for arg, default in
                                   possible_arguments if default is not NoDefaultValue]
 
-        if without:
+        if self.without:
             # Remove any arguments that were explicitely marked as to be
             # not used by the `without` argument.
             possible_arguments = [(arg, default) for arg, default in
-                                  possible_arguments if (arg not in without)]
+                                  possible_arguments if (arg not in self.without)]
 
-        if name:
+        if self.name:
             # Prepend all the arguments with our configuration name to avoid
             # name collision, and make it clearer to the configuration writer
             # where each option goes.
-            possible_arguments = [('.'.join((name, arg)), default) for arg, default
+            possible_arguments = [('.'.join((self.name, arg)), default) for arg, default
                                   in possible_arguments]
 
         self.possible_arguments = possible_arguments
-        self.prefix = name
 
-    def _call_wrapped(self, *args, **kwargs):
-        return self.function(*args, **kwargs)
+    def _call_wrapped(self, pipe, **config):
+        # Update the bottom-most with the rest
+        config.update(self.config)
+
+        # Get the arguments we can use and any default values
+        options = self.get_arguments(config)
+
+        # Now call our wrapped function
+        return self.function(pipe, **options)
 
     @staticmethod
     def _clean(name):
@@ -228,13 +255,23 @@ class config(object):
         the passed `config`, this method will raise ConfigurationError
         """
         arguments = {}
-        for name, default in possible_arguments:
+        for name, default in self.possible_arguments:
             if name in config:
-                arguments[_clean(name)] = config[name]
+                arguments[self._clean(name)] = config[name]
             elif default is not NoDefaultValue:
-                arguments[_clean(name)] = default
+                arguments[self._clean(name)] = default
             else:
                 raise ConfigurationError("Missing required configuration {:s}", name)
 
 
         return arguments
+
+    def __repr__(self):
+        if self.function:
+            return repr(self.function)
+        return super(config, self).__repr__()
+
+    def __str__(self):
+        if self.function:
+            return str(self.function)
+        return super(config, self).__str__()
