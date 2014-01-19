@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import pype.core
+import pype
 
 import pytest
 
