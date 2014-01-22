@@ -1,19 +1,11 @@
 from __future__ import absolute_import
 
+from . import base
 from . import util
 
 import functools
 import collections
 import inspect
-
-
-class Error(Exception):
-    def __init__(self, string, *args, **kwargs):
-        super(Error, self).__init__(string.format(*args, **kwargs))
-
-
-class ConfigurationError(Error):
-    pass
 
 
 def input(name, type=None):
@@ -112,10 +104,58 @@ class NoDefaultValue(object):
 
 
 class config(object):
+    """
+    Decorator that allows your pipe to be configured according to
+    the argument spec of the function. This is best explained
+    with an example.
+
+        Take the following function:
+
+        @config()
+        def test(pipe, a, b, c=10):
+            print (a + b) * c
+
+        Normal `pipeline` construction would only supply the `pipe` argument,
+        this would clearly create an error of sorts. However passing a config
+        dict to the pipeline constructor or to your `test` function locally
+        will fix this issue.
+
+        Take for example `{'a': 2, 'b': 3}` as your config of choice, now to apply
+        these to the `test` pipe, we can do `test = test.apply(our_dict)`. This
+        will return a new `config` instance wrapping the original function, except
+        now it will have arguments to supply when called.
+
+        Thus when we do `test(None)` (the `None` as pipe replacement) both
+        `a` and `b` will be filled in for us.
+
+        This will print `50` since it will be called as `test(None, a=2, b=3, c=10)`.
+
+    There are also various options that can be passed to the decorator to adjust behaviour:
+
+        `name`: A name to prefix options with, take `name="test"` and the example above
+                your config would need to look like `{'test.a': 2, 'test.b': 3}` and it
+                will be resolved for you. This is to avoid argument name collision.
+
+                You can omit the prefix if doing local direct `test.apply` calls. But
+                they're required when passing a global configuration.
+
+
+        `redirect`: A different function to use for argument spec reading. This makes the
+                    decorator skip over the original function and read the argument spec
+                    from the function pointed to by `redirect`.
+
+                    This is helpful if we use a different generator inside the function.
+
+        `only_with_defaults`: Only arguments that have a default value will be filled.
+                              This plain **ignores** any arguments that do not have a default
+                              value associated with them.
+
+        `without`: An iterator of argument names to skip over and not export as configurable.
+    """
     def __init__(self, name=None, redirect=None, only_with_defaults=False, without=None):
         super(config, self).__init__()
 
-        self.name = name
+        self.prefix = name
         self.redirect = redirect
         self.only_with_defaults = only_with_defaults
         self.without  = without
@@ -123,14 +163,14 @@ class config(object):
         self.function = None
         self.config   = {}
 
-    def apply(self, **config):
+    def apply(self, local=False, **config):
         c = self.copy()
         c.config.update(config)
         return c
 
     def copy(self):
         c = type(self)(
-                          name=self.name,
+                          name=self.prefix,
                       redirect=self.redirect,
             only_with_defaults=self.only_with_defaults,
                        without=self.without,
@@ -179,11 +219,11 @@ class config(object):
             possible_arguments = [(arg, default) for arg, default in
                                   possible_arguments if (arg not in self.without)]
 
-        if self.name:
+        if self.prefix:
             # Prepend all the arguments with our configuration name to avoid
             # name collision, and make it clearer to the configuration writer
             # where each option goes.
-            possible_arguments = [('.'.join((self.name, arg)), default) for arg, default
+            possible_arguments = [('.'.join((self.prefix, arg)), default) for arg, default
                                   in possible_arguments]
 
         self.possible_arguments = possible_arguments
@@ -261,8 +301,7 @@ class config(object):
             elif default is not NoDefaultValue:
                 arguments[self._clean(name)] = default
             else:
-                raise ConfigurationError("Missing required configuration {:s}", name)
-
+                raise base.ConfigurationError("Missing required configuration {:s}", name)
 
         return arguments
 
@@ -275,3 +314,18 @@ class config(object):
         if self.function:
             return str(self.function)
         return super(config, self).__str__()
+
+    def __getattr__(self, attribute):
+        if attribute in base.default_pipe_variables:
+            return getattr(self.function, attribute)
+        return super(config, self).__getattr__(attribute)
+
+    def __setattr__(self, attribute, value):
+        if attribute in base.default_pipe_variables:
+            return setattr(self.function, attribute, value)
+        return super(config, self).__setattr__(attribute, value)
+
+    def __delattr__(self, attribute):
+        if attribute in base.default_pipe_variables:
+            return delattr(self.function, attribute)
+        return super(config, self).__delattr__(attribute)

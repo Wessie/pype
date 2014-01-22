@@ -3,23 +3,7 @@ from __future__ import absolute_import
 import functools
 
 from . import core
-
-class DefaultName(object):
-    pass
-
-
-default_pipe_variables = {
-    'output_name': DefaultName(),
-    'input_name' : DefaultName(),
-    'output_type': None,
-    'input_type' : None,
-    'pass_state' : False,
-    'buffered'   : False,
-}
-
-
-class PipeError(core.Error):
-    pass
+from .base import default_pipe_variables, PipeError
 
 
 def pipeline(*pipeline):
@@ -49,6 +33,10 @@ def verify_pipe_types(pipes):
         ("output_name", "input_name"),
     )
 
+    # TODO: Clean this up.
+    # Unwrap functions from their configuration
+    pipes = [getattr(pipe, "function", pipe) for pipe in pipes]
+
     previous_pipe = pipes[0]
     for pipe in pipes[1:]:
         for out_attr, in_attr in attributes_to_check:
@@ -73,6 +61,10 @@ def initialize_pipe_variables(pipe):
 
     Does not touch attributes already set
     """
+    # TODO: Clean this up.
+    # Unwrap the function from config
+    pipe = getattr(pipe, "function", pipe)
+
     for attribute, default in default_pipe_variables.items():
         setattr(pipe, attribute, getattr(pipe, attribute, default))
 

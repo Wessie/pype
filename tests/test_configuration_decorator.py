@@ -95,3 +95,35 @@ def test_config_redirect(use_larger_function, larger_function):
     assert c(larger_function) == 100
     assert c.apply(x=60)(larger_function) == 150
 
+
+def test_decorator_ordering(simple_function):
+    c = pype.input("input")(simple_function)
+    c = pype.config()(c)
+    c = pype.output("output")(c)
+
+    assert c.output_name == "output"
+    assert c.input_name == "input"
+
+
+def test_config_attribute_proxying(simple_function):
+    c = pype.config()(simple_function)
+
+    c.output_type = "test"
+
+    assert c.output_type == simple_function.output_type
+
+    del c.output_type
+
+    assert not hasattr(c, "output_type")
+    assert not hasattr(simple_function, "output_type")
+
+    with pytest.raises(AttributeError):
+        del c._does_not_exist
+
+    with pytest.raises(AttributeError):
+        c._does_not_exist
+
+    c._does_not_exist = "test"
+
+    assert c._does_not_exist == "test"
+    assert not hasattr(simple_function, "_does_not_exist")

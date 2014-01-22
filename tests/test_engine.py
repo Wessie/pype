@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division
-from pype import engine
-from pype import core
+
+from pype import core, base, engine
 
 import pytest
 
@@ -37,8 +37,8 @@ def test_initialize_pipe_variables_full(plain_generator):
 
     g = plain_generator
 
-    assert isinstance(g.output_name, engine.DefaultName)
-    assert isinstance(g.input_name, engine.DefaultName)
+    assert isinstance(g.output_name, base.Default)
+    assert isinstance(g.input_name, base.Default)
 
     assert g.input_type  is None
     assert g.output_type is None
