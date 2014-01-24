@@ -64,7 +64,7 @@ def test_config_apply(simple_function):
 def test_config_prefix_apply(simple_function):
     c = pype.config(name='test')(simple_function)
 
-    options = {'test.x': 50}
+    options = {'x': 50}
 
     assert c.apply(**options)(None) == 50
 
@@ -105,25 +105,9 @@ def test_decorator_ordering(simple_function):
     assert c.input_name == "input"
 
 
-def test_config_attribute_proxying(simple_function):
+def test_config_attribute_copying(simple_function):
+    simple_function.output_type = 'test'
+
     c = pype.config()(simple_function)
 
-    c.output_type = "test"
-
-    assert c.output_type == simple_function.output_type
-
-    del c.output_type
-
-    assert not hasattr(c, "output_type")
-    assert not hasattr(simple_function, "output_type")
-
-    with pytest.raises(AttributeError):
-        del c._does_not_exist
-
-    with pytest.raises(AttributeError):
-        c._does_not_exist
-
-    c._does_not_exist = "test"
-
-    assert c._does_not_exist == "test"
-    assert not hasattr(simple_function, "_does_not_exist")
+    assert c.output_type == "test"

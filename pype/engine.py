@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import functools
 
 from . import core
-from .base import default_pipe_variables, PipeError
+from .base import default_pipe_variables, PipeError, Generic
 
 
-def pipeline(*pipeline):
+def pipeline(*pipeline, **config):
     for pipe in pipeline:
         initialize_pipe_variables(pipe)
 
@@ -16,7 +16,10 @@ def pipeline(*pipeline):
 
     last = None
     for pipe in pipeline:
-        last = pipe(last)
+        if isinstance(pipe, core.config):
+            last = pipe(last, **config)
+        else:
+            last = pipe(last)
 
     return last
 
@@ -33,10 +36,6 @@ def verify_pipe_types(pipes):
         ("output_name", "input_name"),
     )
 
-    # TODO: Clean this up.
-    # Unwrap functions from their configuration
-    pipes = [getattr(pipe, "function", pipe) for pipe in pipes]
-
     previous_pipe = pipes[0]
     for pipe in pipes[1:]:
         for out_attr, in_attr in attributes_to_check:
@@ -44,7 +43,9 @@ def verify_pipe_types(pipes):
             out_attr_value = getattr(previous_pipe, out_attr)
             in_attr_value = getattr(pipe, in_attr)
 
-            if out_attr_value != in_attr_value:
+            if (out_attr_value != in_attr_value and
+                    not isinstance(out_attr_value, Generic) and
+                    not isinstance(in_attr_value, Generic)):
                 raise PipeError(
                     "Incompatible output/input found: "
                     "(output: {:s} from {:s}) (input: {:s} to {:s})",
@@ -61,10 +62,6 @@ def initialize_pipe_variables(pipe):
 
     Does not touch attributes already set
     """
-    # TODO: Clean this up.
-    # Unwrap the function from config
-    pipe = getattr(pipe, "function", pipe)
-
     for attribute, default in default_pipe_variables.items():
         setattr(pipe, attribute, getattr(pipe, attribute, default))
 
@@ -80,31 +77,42 @@ def initialize_pipeline_state_handling(pipes):
     first = True
     # Our first pair of state wrappers
     remove, add = _create_state_pair()
-    # Indicates if we're in a stateless block
-    in_block = False
 
-    for pipe in pipes:
-        if first:
-            if pipe.pass_state:
-                append(_create_state)
-                append(pipe)
-                first = False
-            else:
-                append(pipe)
+    pipe_iter = iter(pipes)
+    # Do a first pass to insert our first state
+    for pipe in pipe_iter:
+        if pipe.pass_state:
+            append(_create_state)
+            append(pipe)
+
+            break
         else:
-            if pipe.pass_state or pipe.buffered:
-                append(add)
-                append(pipe)
-                in_block = False
+            append(pipe)
+    else:
+        # We exited without any state, so just return
+        # the original
+        return pipes
 
-                # Used up our remove, add pair
-                remove, add = _create_state_pair()
-            elif in_block:
-                append(pipe)
-            else:
-                append(remove)
-                append(pipe)
-                in_block = True
+    no_state = False
+    # finish the rest of the pipes normally.
+    for pipe in pipe_iter:
+        if (pipe.pass_state or pipe.buffered) and no_state:
+            # There is no state, but we want state.
+            append(add)
+            append(pipe)
+
+            no_state = False
+
+            # Create new pair because we used the last one.
+            remove, add = _create_state_pair()
+        elif not (pipe.pass_state or pipe.buffered) and not no_state:
+            # There is state, and we don't want any.
+            append(remove)
+            append(pipe)
+
+            no_state = True
+        else:
+            append(pipe)
 
     return stated_pipes
 
@@ -128,5 +136,13 @@ def _create_state_pair():
 
 
 def _create_state(pipe):
-    for data in pipe:
-        yield core.State(), data
+    # If we're the front we don't get any data, so just
+    # pass None and a new state. Otherwise passthrough
+    # any data we get from the previous pipe with a
+    # new state.
+    if pipe is None:
+        while True:
+            yield core.State(), None
+    else:
+        for data in pipe:
+            yield core.State(), data

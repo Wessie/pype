@@ -8,6 +8,20 @@ import collections
 import inspect
 
 
+def io(name, type=None):
+    """
+    Specifies the same name and type for input and output.
+
+    Equal to wrapping your function in both 'input' and
+    'output' while having the same arguments.
+    """
+    def io(function):
+        function = input(name, type)(function)
+        return output(name, type)(function)
+
+    return io
+
+
 def input(name, type=None):
     """
     Specifies the input type expected by the generator. This is used
@@ -155,6 +169,9 @@ class config(object):
     def __init__(self, name=None, redirect=None, only_with_defaults=False, without=None):
         super(config, self).__init__()
 
+        if callable(name):
+            raise base.ConfigurationError("Configuration decorator takes arguments.")
+
         self.prefix = name
         self.redirect = redirect
         self.only_with_defaults = only_with_defaults
@@ -164,6 +181,9 @@ class config(object):
         self.config   = {}
 
     def apply(self, local=False, **config):
+        if self.prefix:
+            config = {".".join([self.prefix, key]): value for key, value in config.items()}
+
         c = self.copy()
         c.config.update(config)
         return c
@@ -192,8 +212,15 @@ class config(object):
         Reads out arguments and filters them depending on options
         passed to the decorator.
         """
+        # Keep function we wrapped around.
         self.function = function
 
+        # Copy any settings that were already set before we got here.
+        functools.update_wrapper(self, function)
+        base.copy_pipe_variables(function, self)
+
+        # Original configuration redirect, the redirect is recursive
+        # so we keep this around as original
         function.redirected_configuration = self.redirect
 
         to_read_config = function
@@ -314,18 +341,3 @@ class config(object):
         if self.function:
             return str(self.function)
         return super(config, self).__str__()
-
-    def __getattr__(self, attribute):
-        if attribute in base.default_pipe_variables:
-            return getattr(self.function, attribute)
-        return super(config, self).__getattr__(attribute)
-
-    def __setattr__(self, attribute, value):
-        if attribute in base.default_pipe_variables:
-            return setattr(self.function, attribute, value)
-        return super(config, self).__setattr__(attribute, value)
-
-    def __delattr__(self, attribute):
-        if attribute in base.default_pipe_variables:
-            return delattr(self.function, attribute)
-        return super(config, self).__delattr__(attribute)

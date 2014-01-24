@@ -11,6 +11,15 @@ class Default(object):
     pass
 
 
+class Generic(object):
+    """
+    A dummy class to represent generic types in pipelines.
+
+    Use `pype.generic` as shorthand.
+    """
+    pass
+
+
 class Error(Exception):
     """
     Base exception class of exceptions raised by `pype`.
@@ -44,3 +53,7 @@ default_pipe_variables = {
     'buffered'   : False,
 }
 
+
+def copy_pipe_variables(original, new):
+    for attribute, default in default_pipe_variables.items():
+        setattr(new, attribute, getattr(original, attribute, default))

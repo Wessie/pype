@@ -3,6 +3,8 @@ import functools
 import threading
 import queue
 
+from . import base
+
 
 def buffered(buffersize, chunksize):
     """
@@ -56,6 +58,9 @@ def buffered(buffersize, chunksize):
 
                 for x in chunk:
                     yield x
+
+        buffered.buffered = True
+        base.copy_pipe_variables(function, buffered)
 
         return buffered
     return buffered
