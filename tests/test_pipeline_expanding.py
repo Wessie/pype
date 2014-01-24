@@ -1,4 +1,6 @@
+from __future__ import unicode_literals
 import pytest
+from future.builtins import str, bytes, isinstance
 
 import pype
 import pype.engine
@@ -107,7 +109,7 @@ def convert_to_names(objs):
     res = []
 
     for obj in objs:
-        if isinstance(obj, (unicode, bytes)):
+        if isinstance(obj, (str, bytes)):
             res.append(obj)
         else:
             res.append(obj.__name__)

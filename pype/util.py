@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 import functools
 import threading
-import queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 from . import base
 
